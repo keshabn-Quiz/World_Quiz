@@ -4,10 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>World Quiz — GK Trainer</title>
-<link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#101d33">
-<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
-<link rel="apple-touch-icon" href="icon-192.png">
 <style>
   :root{
     --ink:#101d33;
@@ -20797,7 +20793,6 @@ function renderTabbar(){
   const tabs = [
     {id:'home', ic:'🧭', label:'Play'},
     {id:'scores', ic:'🏆', label:'Scores'},
-    {id:'admin', ic:'🗂️', label:'Manage'},
   ];
   return `<nav class="tabbar">
     ${tabs.map(t=>`<button data-tab="${t.id}" class="${STATE.screen===t.id?'active':''}"><span class="ic">${t.ic}</span>${t.label}</button>`).join('')}
@@ -20816,7 +20811,6 @@ function renderScreen(){
     case 'quiz': return renderQuiz();
     case 'result': return renderResult();
     case 'scores': return renderScores();
-    case 'admin': return renderAdmin();
     default: return renderHome();
   }
 }
@@ -21008,7 +21002,6 @@ function attachScreenEvents(){
   if(STATE.screen==='quiz') attachQuiz();
   if(STATE.screen==='result') attachResult();
   if(STATE.screen==='scores') attachScores();
-  if(STATE.screen==='admin') attachAdmin();
 }
 
 function attachHome(){
@@ -21209,309 +21202,11 @@ function attachScores(){
   });
 }
 
-/* ================= ADMIN ================= */
-let ADMIN_NEW = { topic:'', subtopic:'', subsubtopic:'' };
-let ADMIN_Q = { classLevel:'7', topic:'', subtopic:'', subsubtopic:'', difficulty:'easy', text:'', o1:'',o2:'',o3:'',o4:'', correct:0, note:'' };
-
-function renderAdmin(){
-  const topics = topicList();
-  const subs = ADMIN_Q.topic ? subtopicList(ADMIN_Q.topic) : [];
-  const subsubs = (ADMIN_Q.topic && ADMIN_Q.subtopic) ? subsubtopicList(ADMIN_Q.topic, ADMIN_Q.subtopic) : [];
-  const stats = computeStats();
-
-  return `
-  <div class="card">
-    <h2>📊 Question Bank</h2>
-    <div class="stat-grid">
-      <div class="stat-box"><span class="n">${STATE.questions.length}</span><span class="l">Total Questions</span></div>
-      <div class="stat-box"><span class="n">${topics.length}</span><span class="l">Top Topics</span></div>
-      <div class="stat-box"><span class="n">${(()=>{ const mb = localStorageUsageMB(); return mb===null ? '—' : mb.toFixed(2)+' MB'; })()}</span><span class="l">Storage Used (of ~5-10MB limit)</span></div>
-    </div>
-  </div>
-
-  <div class="card">
-    <h2>🌳 Topic Tree</h2>
-    <div class="topictree">${renderTreeView(STATE.tree)}</div>
-    <span class="legend-label" style="margin-top:8px;">Add Topic / Subtopic / Sub-subtopic</span>
-    <label class="field"><span class="lbl">Topic (new or existing)</span>
-      <input type="text" id="newTopic" placeholder="e.g. Wonders & Famous Monuments" value="${esc(ADMIN_NEW.topic)}">
-    </label>
-    <label class="field"><span class="lbl">Subtopic (optional)</span>
-      <input type="text" id="newSub" placeholder="e.g. Oceans" value="${esc(ADMIN_NEW.subtopic)}">
-    </label>
-    <label class="field"><span class="lbl">Sub-subtopic (optional)</span>
-      <input type="text" id="newSubsub" placeholder="e.g. Pacific Ring" value="${esc(ADMIN_NEW.subsubtopic)}">
-    </label>
-    <button class="btn btn-ghost" id="addTopicBtn">Add to Tree</button>
-  </div>
-
-  <div class="card">
-    <h2>➕ Add a Question</h2>
-    <label class="field"><span class="lbl">Class Level</span>
-      <select id="aqClass">${CLASS_LEVELS.map(c=>`<option value="${c}" ${ADMIN_Q.classLevel===c?'selected':''}>Class ${c}</option>`).join('')}</select>
-    </label>
-    <label class="field"><span class="lbl">Topic</span>
-      <select id="aqTopic"><option value="">— Select —</option>${topics.map(t=>`<option value="${esc(t)}" ${ADMIN_Q.topic===t?'selected':''}>${esc(t)}</option>`).join('')}</select>
-    </label>
-    ${subs.length? `<label class="field"><span class="lbl">Subtopic</span>
-      <select id="aqSub"><option value="">— None —</option>${subs.map(t=>`<option value="${esc(t)}" ${ADMIN_Q.subtopic===t?'selected':''}>${esc(t)}</option>`).join('')}</select>
-    </label>` : ''}
-    ${subsubs.length? `<label class="field"><span class="lbl">Sub-subtopic</span>
-      <select id="aqSubsub"><option value="">— None —</option>${subsubs.map(t=>`<option value="${esc(t)}" ${ADMIN_Q.subsubtopic===t?'selected':''}>${esc(t)}</option>`).join('')}</select>
-    </label>` : ''}
-    <label class="field"><span class="lbl">Difficulty</span>
-      <select id="aqDiff">${DIFFICULTIES.map(d=>`<option value="${d}" ${ADMIN_Q.difficulty===d?'selected':''}>${d[0].toUpperCase()+d.slice(1)}</option>`).join('')}</select>
-    </label>
-    <label class="field"><span class="lbl">Question Text</span>
-      <textarea id="aqText" placeholder="Type the question...">${esc(ADMIN_Q.text)}</textarea>
-    </label>
-    <label class="field"><span class="lbl">Option 1</span><input type="text" id="aqO1" value="${esc(ADMIN_Q.o1)}"></label>
-    <label class="field"><span class="lbl">Option 2</span><input type="text" id="aqO2" value="${esc(ADMIN_Q.o2)}"></label>
-    <label class="field"><span class="lbl">Option 3</span><input type="text" id="aqO3" value="${esc(ADMIN_Q.o3)}"></label>
-    <label class="field"><span class="lbl">Option 4</span><input type="text" id="aqO4" value="${esc(ADMIN_Q.o4)}"></label>
-    <label class="field"><span class="lbl">Correct Option</span>
-      <select id="aqCorrect">
-        <option value="0" ${ADMIN_Q.correct==0?'selected':''}>Option 1</option>
-        <option value="1" ${ADMIN_Q.correct==1?'selected':''}>Option 2</option>
-        <option value="2" ${ADMIN_Q.correct==2?'selected':''}>Option 3</option>
-        <option value="3" ${ADMIN_Q.correct==3?'selected':''}>Option 4</option>
-      </select>
-    </label>
-    <label class="field"><span class="lbl">Explanation (shown in the answer pop-up)</span>
-      <textarea id="aqNote" placeholder="e.g. The Pacific Ocean covers about one-third of Earth's surface.">${esc(ADMIN_Q.note)}</textarea>
-    </label>
-    <button class="btn btn-primary" id="addQBtn">Add Question</button>
-  </div>
-
-  <div class="card">
-    <h2>📥 Bulk Import (JSON)</h2>
-    <div class="hint">Paste an array of question objects: {classLevel, topic, subtopic, subsubtopic, difficulty, text, options:[4], correct, note}. The "note" field is shown as the explanation when a player answers wrong. This is the fastest way to add hundreds or thousands of questions at once.</div>
-    <textarea id="bulkJson" placeholder='[ { "classLevel":"12", "topic":"Ocean and Sea", "subtopic":null, "subsubtopic":null, "difficulty":"easy", "text":"...", "options":["a","b","c","d"], "correct":1, "note":"" } ]'></textarea>
-    <button class="btn btn-ghost" id="bulkImportBtn" style="margin-top:8px;">Import JSON</button>
-  </div>
-
-  <div class="card">
-    <h2>💾 Backup & Restore</h2>
-    <div class="hint">This app stores everything on this device only. Export regularly to keep a backup, and use Import to bring data onto another phone.</div>
-    <div class="btn-row">
-      <button class="btn btn-ghost" id="exportBtn">Export All Data</button>
-      <button class="btn btn-ghost" id="importFileBtn">Import File</button>
-    </div>
-    <input type="file" id="importFileInput" accept="application/json" style="display:none;">
-  </div>
-
-  <div class="card">
-    <h2>⚠️ Reset</h2>
-    <button class="btn btn-danger" id="resetBtn">Erase All Local Data</button>
-  </div>
-  `;
-}
-
-function renderTreeView(node, path=[]){
-  const keys = Object.keys(node);
-  if(keys.length===0) return `<div class="hint">No subtopics yet.</div>`;
-  return `<ul>${keys.map(k=>{
-    const child = node[k];
-    const hasChildren = child && typeof child === 'object' && Object.keys(child).length>0;
-    const fullPath = [...path, k];
-    return `<li>
-      <div class="tt-row"><span>📁 ${esc(k)}</span><button type="button" class="tt-edit" data-path="${esc(JSON.stringify(fullPath))}" title="Rename">✏️</button></div>
-      ${hasChildren ? renderTreeView(child, fullPath) : ''}
-    </li>`;
-  }).join('')}</ul>`;
-}
-
-function computeStats(){
-  const byClass = {};
-  STATE.questions.forEach(q=>{ byClass[q.classLevel] = (byClass[q.classLevel]||0)+1; });
-  return byClass;
-}
-
-function localStorageUsageMB(){
-  let totalChars = 0;
-  try{
-    for(const key in localStorage){
-      if(Object.prototype.hasOwnProperty.call(localStorage, key)){
-        totalChars += key.length + (localStorage[key] ? localStorage[key].length : 0);
-      }
-    }
-  }catch(e){ return null; }
-  // localStorage stores UTF-16, so ~2 bytes per character
-  const bytes = totalChars * 2;
-  return bytes / (1024 * 1024);
-}
-
-function attachAdmin(){
-  const el = id => document.getElementById(id);
-
-  document.querySelectorAll('.tt-edit').forEach(btn=>{
-    btn.addEventListener('click', ()=>{
-      let path;
-      try{ path = JSON.parse(btn.getAttribute('data-path')); }catch(e){ return; }
-      renameTreeNode(path);
-    });
-  });
-
-  if(el('newTopic')) el('newTopic').addEventListener('input', e=> ADMIN_NEW.topic = e.target.value);
-  if(el('newSub')) el('newSub').addEventListener('input', e=> ADMIN_NEW.subtopic = e.target.value);
-  if(el('newSubsub')) el('newSubsub').addEventListener('input', e=> ADMIN_NEW.subsubtopic = e.target.value);
-  if(el('addTopicBtn')) el('addTopicBtn').addEventListener('click', ()=>{
-    const t = ADMIN_NEW.topic.trim(), s = ADMIN_NEW.subtopic.trim(), ss = ADMIN_NEW.subsubtopic.trim();
-    if(!t){ toast('Please enter a topic name.'); return; }
-    if(!STATE.tree[t]) STATE.tree[t] = {};
-    if(s){
-      if(!STATE.tree[t] || typeof STATE.tree[t] !== 'object') STATE.tree[t] = {};
-      if(!STATE.tree[t][s]) STATE.tree[t][s] = {};
-      if(ss){
-        if(typeof STATE.tree[t][s] !== 'object') STATE.tree[t][s] = {};
-        if(!STATE.tree[t][s][ss]) STATE.tree[t][s][ss] = null;
-      }
-    }
-    save(LS_TREE, STATE.tree);
-    ADMIN_NEW = { topic:'', subtopic:'', subsubtopic:'' };
-    toast('Topic tree updated.');
-    render();
-  });
-
-  if(el('aqClass')) el('aqClass').addEventListener('change', e=>{ ADMIN_Q.classLevel = e.target.value; });
-  if(el('aqTopic')) el('aqTopic').addEventListener('change', e=>{ ADMIN_Q.topic = e.target.value; ADMIN_Q.subtopic=''; ADMIN_Q.subsubtopic=''; render(); });
-  if(el('aqSub')) el('aqSub').addEventListener('change', e=>{ ADMIN_Q.subtopic = e.target.value; ADMIN_Q.subsubtopic=''; render(); });
-  if(el('aqSubsub')) el('aqSubsub').addEventListener('change', e=>{ ADMIN_Q.subsubtopic = e.target.value; });
-  if(el('aqDiff')) el('aqDiff').addEventListener('change', e=>{ ADMIN_Q.difficulty = e.target.value; });
-  if(el('aqText')) el('aqText').addEventListener('input', e=>{ ADMIN_Q.text = e.target.value; });
-  if(el('aqO1')) el('aqO1').addEventListener('input', e=>{ ADMIN_Q.o1 = e.target.value; });
-  if(el('aqO2')) el('aqO2').addEventListener('input', e=>{ ADMIN_Q.o2 = e.target.value; });
-  if(el('aqO3')) el('aqO3').addEventListener('input', e=>{ ADMIN_Q.o3 = e.target.value; });
-  if(el('aqO4')) el('aqO4').addEventListener('input', e=>{ ADMIN_Q.o4 = e.target.value; });
-  if(el('aqCorrect')) el('aqCorrect').addEventListener('change', e=>{ ADMIN_Q.correct = parseInt(e.target.value,10); });
-  if(el('aqNote')) el('aqNote').addEventListener('input', e=>{ ADMIN_Q.note = e.target.value; });
-
-  if(el('addQBtn')) el('addQBtn').addEventListener('click', ()=>{
-    if(!ADMIN_Q.topic){ toast('Please select a topic.'); return; }
-    if(!ADMIN_Q.text.trim()){ toast('Please enter the question text.'); return; }
-    if(![ADMIN_Q.o1,ADMIN_Q.o2,ADMIN_Q.o3,ADMIN_Q.o4].every(o=>o.trim())){ toast('Please fill all 4 options.'); return; }
-    const dupKey = [String(ADMIN_Q.classLevel), ADMIN_Q.topic, (ADMIN_Q.subtopic||''), (ADMIN_Q.subsubtopic||''), ADMIN_Q.text.trim().toLowerCase().replace(/\s+/g,' ')].join('|');
-    const isDup = STATE.questions.some(q => [String(q.classLevel), q.topic, (q.subtopic||''), (q.subsubtopic||''), String(q.text||'').trim().toLowerCase().replace(/\s+/g,' ')].join('|') === dupKey);
-    if(isDup){ toast('This question already exists in the bank — not added again.'); return; }
-    const q = {
-      id: uid(), classLevel: ADMIN_Q.classLevel, topic: ADMIN_Q.topic,
-      subtopic: ADMIN_Q.subtopic || null, subsubtopic: ADMIN_Q.subsubtopic || null,
-      difficulty: ADMIN_Q.difficulty, text: ADMIN_Q.text.trim(),
-      options: [ADMIN_Q.o1,ADMIN_Q.o2,ADMIN_Q.o3,ADMIN_Q.o4].map(o=>o.trim()),
-      correct: ADMIN_Q.correct, note: ADMIN_Q.note.trim()
-    };
-    STATE.questions.push(q);
-    save(LS_QUESTIONS, STATE.questions.filter(x=>isCustomQuestionId(x.id)));
-    ADMIN_Q.text=''; ADMIN_Q.o1=''; ADMIN_Q.o2=''; ADMIN_Q.o3=''; ADMIN_Q.o4=''; ADMIN_Q.note=''; ADMIN_Q.correct=0;
-    toast('Question added to bank.');
-    render();
-  });
-
-  if(el('bulkImportBtn')) el('bulkImportBtn').addEventListener('click', ()=>{
-    const raw = el('bulkJson').value.trim();
-    if(!raw){ toast('Paste JSON first.'); return; }
-    try{
-      const arr = JSON.parse(raw);
-      if(!Array.isArray(arr)) throw new Error('not an array');
-      // Build a set of content signatures for everything already in the bank,
-      // so re-importing the same batch (or an overlapping one) doesn't create duplicates.
-      const contentKey = (cls, topic, sub, subsub, text) =>
-        [String(cls), (topic||''), (sub||''), (subsub||''), String(text||'').trim().toLowerCase().replace(/\s+/g,' ')].join('|');
-      const existingKeys = new Set(STATE.questions.map(q =>
-        contentKey(q.classLevel, q.topic, q.subtopic, q.subsubtopic, q.text)));
-      let added = 0, skipped = 0;
-      arr.forEach(item=>{
-        if(!item.text || !Array.isArray(item.options) || item.options.length!==4) return;
-        const cls = String(item.classLevel||'7');
-        const topic = item.topic || 'Wonders & Famous Monuments';
-        const sub = item.subtopic || null;
-        const subsub = item.subsubtopic || null;
-        const key = contentKey(cls, topic, sub, subsub, item.text);
-        if(existingKeys.has(key)){ skipped++; return; }
-        existingKeys.add(key);
-        STATE.questions.push({
-          id: uid(),
-          classLevel: cls,
-          topic: topic,
-          subtopic: sub,
-          subsubtopic: subsub,
-          difficulty: item.difficulty || 'easy',
-          text: item.text,
-          options: item.options,
-          correct: typeof item.correct==='number' ? item.correct : 0,
-          note: item.note || ''
-        });
-        added++;
-      });
-      save(LS_QUESTIONS, STATE.questions.filter(x=>isCustomQuestionId(x.id)));
-      toast(skipped>0 ? `Imported ${added} question(s), skipped ${skipped} already in the bank.` : `Imported ${added} question(s).`);
-      el('bulkJson').value='';
-      render();
-    }catch(e){
-      toast('Invalid JSON — please check the format.');
-    }
-  });
-
-  if(el('exportBtn')) el('exportBtn').addEventListener('click', ()=>{
-    const payload = { tree: STATE.tree, questions: STATE.questions, scores: STATE.scores, exportedAt: new Date().toISOString() };
-    const blob = new Blob([JSON.stringify(payload,null,2)], {type:'application/json'});
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = 'WorldQuiz_Backup_' + new Date().toISOString().slice(0,10) + '.json';
-    document.body.appendChild(a); a.click(); document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    toast('Backup file downloaded.');
-  });
-
-  if(el('importFileBtn')) el('importFileBtn').addEventListener('click', ()=> el('importFileInput').click());
-  if(el('importFileInput')) el('importFileInput').addEventListener('change', e=>{
-    const file = e.target.files[0];
-    if(!file) return;
-    const reader = new FileReader();
-    reader.onload = evt=>{
-      try{
-        const payload = JSON.parse(evt.target.result);
-        if(payload.tree) STATE.tree = payload.tree;
-        if(Array.isArray(payload.questions)){
-          // Older backups may include built-in questions too; keep only the custom ones
-          // from the file and re-derive built-ins live so they always match this app version.
-          const customFromBackup = payload.questions.filter(q=>isCustomQuestionId(q && q.id));
-          STATE.questions = builtInQuestionObjects().concat(customFromBackup);
-        }
-        if(Array.isArray(payload.scores)) STATE.scores = payload.scores;
-        save(LS_TREE, STATE.tree); save(LS_QUESTIONS, STATE.questions.filter(x=>isCustomQuestionId(x.id))); save(LS_SCORES, STATE.scores);
-        toast('Data restored from backup.');
-        render();
-      }catch(err){ toast('Could not read that file.'); }
-    };
-    reader.readAsText(file);
-  });
-
-  if(el('resetBtn')) el('resetBtn').addEventListener('click', ()=>{
-    if(confirm('This will permanently erase all questions, topics, and scores on this device. Continue?')){
-      localStorage.removeItem(LS_TREE); localStorage.removeItem(LS_QUESTIONS); localStorage.removeItem(LS_SCORES);
-      ensureSeeded();
-      STATE.tree = load(LS_TREE, DEFAULT_TREE);
-      STATE.questions = builtInQuestionObjects().concat(load(LS_QUESTIONS, []));
-      STATE.scores = load(LS_SCORES, []);
-      toast('All data reset to defaults.');
-      render();
-    }
-  });
-}
-
 /* ================= INIT ================= */
 if(STATE.player){ STATE.screen = 'home'; }
 render();
 if(window.__STORAGE_FULL__){
-  setTimeout(()=> toast('Storage is full — recent changes may not have saved. Export a backup, then use Admin → Reset to clear duplicates.'), 400);
-}
-
-/* ================= PWA SERVICE WORKER ================= */
-if('serviceWorker' in navigator){
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js').catch(() => {});
-  });
+  setTimeout(()=> toast('Storage is full — recent changes may not have saved. Export a backup and free up space.'), 400);
 }
 </script>
 </body>
