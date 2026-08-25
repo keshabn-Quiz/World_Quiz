@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<link rel="manifest" href="manifest.json">
 <title>World Quiz — GK Trainer</title>
 <style>
   :root{
@@ -21207,6 +21208,11 @@ if(STATE.player){ STATE.screen = 'home'; }
 render();
 if(window.__STORAGE_FULL__){
   setTimeout(()=> toast('Storage is full — recent changes may not have saved. Export a backup and free up space.'), 400);
+}
+if('serviceWorker' in navigator){
+  window.addEventListener('load', ()=>{
+    navigator.serviceWorker.register('sw.js').catch(()=>{});
+  });
 }
 </script>
 </body>
