@@ -1,0 +1,1 @@
+[{ "relation": ["delegate_permission/common.handle_all_urls"], "target": { "namespace": "android_app", "package_name": "io.github.keshabn_quiz.twa", "sha256_cert_fingerprints": ["6A:AF:09:77:55:7B:01:0F:78:AD:E2:E5:98:5D:A7:E6:CB:88:2E:81:DD:B4:AD:68:EA:98:E0:F3:F9:5D:86:9B"] } }]
